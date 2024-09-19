@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+type RowItem = map[string]string
+
 func CleanGPTJson[T any](jsonStr string) (T, error) {
 	var result T
 
@@ -33,7 +35,7 @@ func CleanGPTJson[T any](jsonStr string) (T, error) {
 	return result, nil
 }
 
-func ReadCSVFile(filePath string) ([]map[string]string, error) {
+func ReadCSVFile(filePath string) ([]RowItem, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
@@ -46,7 +48,7 @@ func ReadCSVFile(filePath string) ([]map[string]string, error) {
 		return nil, err
 	}
 
-	var records []map[string]string
+	var records []RowItem
 
 	for {
 		record, err := reader.Read()
@@ -54,7 +56,7 @@ func ReadCSVFile(filePath string) ([]map[string]string, error) {
 			break
 		}
 
-		recordMap := make(map[string]string)
+		recordMap := RowItem{}
 		for i, header := range headers {
 			recordMap[header] = record[i]
 		}
