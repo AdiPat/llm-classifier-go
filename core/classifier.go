@@ -24,13 +24,14 @@ type ClassificationResult struct {
 }
 
 func NewTaoClassifier() *TaoClassifier {
-	err := godotenv.Load()
+	err := godotenv.Load("../.env")
 
 	if err != nil {
+		fmt.Println(err)
 		panic("Error loading .env file")
 	}
 
-	var openAiKey string = os.Getenv("OPENAI_KEY")
+	var openAiKey string = os.Getenv("OPENAI_API_KEY")
 
 	if openAiKey == "" {
 		panic("OPENAI_KEY is not set")
