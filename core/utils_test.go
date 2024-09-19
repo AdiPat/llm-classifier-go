@@ -32,4 +32,17 @@ func TestCleanGPTJSON(t *testing.T) {
 			t.Errorf("Expected %v, got %v", expected, result)
 		}
 	})
+
+	t.Run("Valid JSON string inside markdown", func(t *testing.T) {
+		jsonStr := "```json\n{\"key\": \"value\"}\n```"
+		result, err := CleanGPTJson[interface{}](jsonStr)
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+
+		expected := map[string]interface{}{"key": "value"}
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Expected %v, got %v", expected, result)
+		}
+	})
 }
