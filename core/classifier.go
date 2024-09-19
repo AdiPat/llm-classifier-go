@@ -5,13 +5,16 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/option"
 )
 
 type Label = string
 type LabelDescription = string
 
 type TaoClassifier struct {
-	prompts map[Label]LabelDescription // mapping between label -> description of label (prompt)
+	prompts      map[Label][]LabelDescription // mapping between label -> array of descriptions of label (prompts)
+	openaiClient *openai.Client
 }
 
 func NewTaoClassifier() *TaoClassifier {
@@ -27,18 +30,21 @@ func NewTaoClassifier() *TaoClassifier {
 		panic("OPENAI_KEY is not set")
 	}
 
+	client := openai.NewClient(option.WithAPIKey(openAiKey))
+
 	return &TaoClassifier{
-		prompts: make(map[Label]LabelDescription),
+		prompts:      make(map[Label][]LabelDescription),
+		openaiClient: client,
 	}
 }
 
-func (c *TaoClassifier) PromptTrain(prompts map[Label]LabelDescription) (bool, error) {
+func (c *TaoClassifier) PromptTrain(prompts map[Label][]LabelDescription) (bool, error) {
 	if len(prompts) == 0 {
 		return false, fmt.Errorf("prompts cannot be empty")
 	}
 
-	for label, description := range prompts {
-		c.prompts[label] = description
+	for label, descriptionList := range prompts {
+		c.prompts[label] = append(c.prompts[label], descriptionList...)
 	}
 
 	return true, nil
@@ -53,25 +59,30 @@ func (c *TaoClassifier) AddPrompt(label Label, description LabelDescription) (bo
 		return false, fmt.Errorf("description cannot be empty")
 	}
 
-	c.prompts[label] = description
+	if _, ok := c.prompts[label]; !ok {
+		c.prompts[label] = []LabelDescription{description}
+	} else {
+		c.prompts[label] = append(c.prompts[label], description)
+	}
+
 	return true, nil
 }
 
-func (c *TaoClassifier) GetPrompt(label Label) (LabelDescription, error) {
+func (c *TaoClassifier) GetPrompt(label Label) ([]LabelDescription, error) {
 	if label == "" {
-		return "", fmt.Errorf("label cannot be empty")
+		return []LabelDescription{}, fmt.Errorf("label cannot be empty")
 	}
 
-	description, ok := c.prompts[label]
+	descriptionList, ok := c.prompts[label]
 
 	if !ok {
-		return "", fmt.Errorf("label not found")
+		return []LabelDescription{}, fmt.Errorf("label not found")
 	}
 
-	return description, nil
+	return descriptionList, nil
 }
 
-func (c *TaoClassifier) GetPrompts() map[Label]LabelDescription {
+func (c *TaoClassifier) GetPrompts() map[Label][]LabelDescription {
 	return c.prompts
 }
 
@@ -91,7 +102,7 @@ func (c *TaoClassifier) RemovePrompt(label Label) (bool, error) {
 }
 
 func (c *TaoClassifier) ClearPrompts() {
-	c.prompts = make(map[Label]LabelDescription)
+	c.prompts = make(map[Label][]LabelDescription)
 }
 
 func (c *TaoClassifier) Classify(text string) (Label, error) {
