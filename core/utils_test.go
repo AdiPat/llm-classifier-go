@@ -65,9 +65,13 @@ func TestReadCSVFile(t *testing.T) {
 
 	t.Run("Valid CSV file", func(t *testing.T) {
 		filePath := "../datasets/student_performance.csv"
-		_, err := ReadCSVFile(filePath)
+		records, err := ReadCSVFile(filePath)
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
+		}
+
+		if len(records) != 10 {
+			t.Errorf("Expected 10 rows found in the CSV file, got %v", len(records))
 		}
 	})
 }
