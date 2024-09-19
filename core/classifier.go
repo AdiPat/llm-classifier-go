@@ -27,8 +27,7 @@ func NewTaoClassifier() *TaoClassifier {
 	err := godotenv.Load("../.env")
 
 	if err != nil {
-		fmt.Println(err)
-		panic("Error loading .env file")
+		fmt.Println("Error loading .env file", err)
 	}
 
 	var openAiKey string = os.Getenv("OPENAI_API_KEY")
