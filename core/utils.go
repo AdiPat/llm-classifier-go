@@ -1,8 +1,10 @@
 package core
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 )
@@ -29,4 +31,36 @@ func CleanGPTJson[T any](jsonStr string) (T, error) {
 	}
 
 	return result, nil
+}
+
+func ReadCSVFile(filePath string) ([]map[string]string, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	reader := csv.NewReader(file)
+	headers, err := reader.Read()
+	if err != nil {
+		return nil, err
+	}
+
+	var records []map[string]string
+
+	for {
+		record, err := reader.Read()
+		if err != nil {
+			break
+		}
+
+		recordMap := make(map[string]string)
+		for i, header := range headers {
+			recordMap[header] = record[i]
+		}
+
+		records = append(records, recordMap)
+	}
+
+	return records, nil
 }

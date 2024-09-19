@@ -46,3 +46,28 @@ func TestCleanGPTJSON(t *testing.T) {
 		}
 	})
 }
+
+func TestReadCSVFile(t *testing.T) {
+
+	t.Run("Empty file path", func(t *testing.T) {
+		_, err := ReadCSVFile("")
+		if err == nil {
+			t.Errorf("Expected an error, got nil")
+		}
+	})
+
+	t.Run("Invalid file path", func(t *testing.T) {
+		_, err := ReadCSVFile("invalid")
+		if err == nil {
+			t.Errorf("Expected an error, got nil")
+		}
+	})
+
+	t.Run("Valid CSV file", func(t *testing.T) {
+		filePath := "../datasets/student_performance.csv"
+		_, err := ReadCSVFile(filePath)
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+	})
+}
