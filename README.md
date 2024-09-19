@@ -13,6 +13,14 @@ This is a reusable Go-based LLM Classifier module designed to perform classifica
 3. **Customizable:** Supports customization of classification models to do specific tasks.
 4. **Scalable:** Designed to handle both small and large datasets with high throughput.
 
+# Run Tests
+
+The `...` means go will include all subdirectories when checking the tests.
+
+```bash
+go test ./...
+```
+
 # Contribution
 
 Contributors are welcome. Reach out to me at my [work email](mailto:contact.adityapatange@gmail.com). Alternatively, feel free to fork the repo, make your changes and submit a PR.
