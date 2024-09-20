@@ -19,6 +19,7 @@ type TaoClassifier struct {
 	targetColumn     string
 	temperature      float64
 	promptSampleSize int
+	verbose          bool
 }
 
 type ClassificationResult struct {
@@ -37,6 +38,7 @@ type TaoClassifierOptions struct {
 	TargetColumn        string
 	Temperature         float64
 	PromptSampleSize    int
+	Verbose             bool
 }
 
 func NewTaoClassifier(opts ...TaoClassifierOptions) *TaoClassifier {
@@ -59,7 +61,9 @@ func NewTaoClassifier(opts ...TaoClassifierOptions) *TaoClassifier {
 	err := godotenv.Load("../.env")
 
 	if err != nil {
-		fmt.Println("Error loading .env file", err)
+		if options.Verbose {
+			fmt.Println("Error loading .env file", err)
+		}
 	}
 
 	ai := NewAI()
@@ -80,7 +84,10 @@ func NewTaoClassifier(opts ...TaoClassifierOptions) *TaoClassifier {
 		classes := ExtractClasses(dataset, options.TargetColumn)
 
 		if len(classes) == 0 {
-			fmt.Printf("NewTaoClassifier: no classes found on targetColumn=%s for dataset\n", options.TargetColumn)
+
+			if options.Verbose {
+				fmt.Printf("NewTaoClassifier: no classes found on targetColumn=%s for dataset\n", options.TargetColumn)
+			}
 		}
 
 		for _, class := range classes {
@@ -91,6 +98,7 @@ func NewTaoClassifier(opts ...TaoClassifierOptions) *TaoClassifier {
 
 		if err != nil {
 			log.Fatal("NewTaoClassifier: Failed to read training dataset", err)
+			panic("NewTaoClassifier: Failed to read training dataset")
 		}
 	}
 
@@ -101,6 +109,7 @@ func NewTaoClassifier(opts ...TaoClassifierOptions) *TaoClassifier {
 		temperature:      options.Temperature,
 		promptSampleSize: options.PromptSampleSize,
 		targetColumn:     options.TargetColumn,
+		verbose:          options.Verbose,
 	}
 }
 
@@ -108,7 +117,10 @@ func (c *TaoClassifier) InitializePromptsFromDataset() {
 	classes := ExtractClasses(c.dataset, c.targetColumn)
 
 	if len(classes) == 0 {
-		fmt.Printf("NewTaoClassifier: no classes found on targetColumn=%s for dataset\n", c.targetColumn)
+
+		if c.verbose {
+			fmt.Printf("NewTaoClassifier: no classes found on targetColumn=%s for dataset\n", c.targetColumn)
+		}
 	}
 
 	for _, class := range classes {
@@ -173,12 +185,16 @@ func (c *TaoClassifier) GenerateClassifierProfile(label Label, rowItem RowItem, 
 
 	text, err := c.ai.GenerateText(userPrompt, GenerateTextOptions{Verbose: false, System: systemPrompt})
 
+	if c.verbose {
+		fmt.Println("System Prompt: ", systemPrompt)
+		fmt.Println("Prompt: ", userPrompt)
+		fmt.Println("Generated Text: ", text)
+	}
+
 	if err != nil {
 		log.Fatal("GenerateClassifierProfile: Failed to generate completions", err)
 		return ClassifierProfile{}, err
 	}
-
-	fmt.Println(text)
 
 	result, err := CleanGPTJson[ClassifierProfile](text)
 
@@ -198,41 +214,47 @@ func (c *TaoClassifier) Train() error {
 		selectedRows[index] = false
 	}
 
-	fmt.Printf("selectedRows: %+v\n", selectedRows)
-	fmt.Println("Dataset Size: ", len(c.dataset))
-	fmt.Println("Prompts Before: ", c.prompts)
+	if c.verbose {
+		fmt.Printf("selectedRows: %+v\n", selectedRows)
+		fmt.Println("Dataset Size: ", len(c.dataset))
+		fmt.Println("Prompts Before: ", c.prompts)
+	}
 
 	c.InitializePromptsFromDataset()
 
-	fmt.Println("Prompts After Initialization: ", c.prompts)
-
 	for {
 		row, index := SelectRandomRow(c.dataset)
-
-		// fmt.Printf("Row: %+v | %d\n | SELECTED: %t\n", row, index, selectedRows[index])
-
 		selectedRowsCount := CountSelectedRows(c.dataset, selectedRows)
 
 		if selectedRowsCount == len(c.dataset) {
-			fmt.Println("All rows have been selected. ")
+			if c.verbose {
+				fmt.Println("All rows have been selected. ")
+			}
 			break
 		}
 
 		if selectedRows[index] {
-			fmt.Println("Row already selected. ", selectedRows[index])
+			if c.verbose {
+				fmt.Println("Row already selected. ", selectedRows[index])
+			}
+
 			continue
 		}
 
 		for class, descriptionList := range c.prompts {
 			// if label already has enough prompts, skip to the next label
 			if len(descriptionList) >= maxDescriptions {
-				fmt.Println("Label already has enough prompts. ", class, len(descriptionList), maxDescriptions)
+				if c.verbose {
+					fmt.Println("Label already has enough prompts. ", class, len(descriptionList), maxDescriptions)
+				}
 				continue
 			}
 
 			classificationProfile, err := c.GenerateClassifierProfile(class, row, ClassifierProfile{})
 
-			fmt.Println("Classification Profile: ", classificationProfile)
+			if c.verbose {
+				fmt.Println("Classification Profile: ", classificationProfile)
+			}
 
 			if err != nil {
 				log.Fatal("Train: Failed to generate classifier profile", err)
@@ -244,7 +266,9 @@ func (c *TaoClassifier) Train() error {
 		selectedRows[index] = true
 	}
 
-	fmt.Println("Prompts After: ", c.prompts)
+	if c.verbose {
+		fmt.Println("Prompts After: ", c.prompts)
+	}
 
 	return nil
 }
@@ -331,6 +355,12 @@ func (c *TaoClassifier) PredictOne(text string) (ClassificationResult, error) {
 
 	if err != nil {
 		return ClassificationResult{Label: "", Probability: -1}, err
+	}
+
+	if c.verbose {
+		fmt.Println("System Prompt: ", systemPrompt)
+		fmt.Println("Prompt: ", userPrompt)
+		fmt.Println("Generated Text: ", text)
 	}
 
 	result, err := CleanGPTJson[ClassificationResult](text)
