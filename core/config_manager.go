@@ -142,3 +142,25 @@ func (tc *TaoConfig) SaveModelToFile(model SavedTaoModel, opts ...SaveModelToFil
 
 	return modelId, nil
 }
+
+func (tc *TaoConfig) LoadModelFromFile(modelId string) (SavedTaoModel, error) {
+	modelFilePath := filepath.Join(tc.modelsFolder, modelId+".json")
+
+	taoModelBytes, err := os.ReadFile(modelFilePath)
+
+	if err != nil {
+		fmt.Println("LoadModelFromFile: Error reading model file:", err)
+		return SavedTaoModel{}, err
+	}
+
+	var model SavedTaoModel
+
+	err = json.Unmarshal(taoModelBytes, &model)
+
+	if err != nil {
+		fmt.Println("LoadModelFromFile: Error unmarshalling model:", err)
+		return SavedTaoModel{}, err
+	}
+
+	return model, nil
+}
