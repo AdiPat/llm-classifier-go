@@ -273,6 +273,19 @@ func (c *TaoClassifier) Train() error {
 
 	return nil
 }
+func (c *TaoClassifier) ArePromptsLoaded() (bool, error) {
+	if len(c.prompts) == 0 {
+		return false, fmt.Errorf("no prompts found. Call Train() or PromptTrain() first. ")
+	}
+
+	for class, descriptionList := range c.prompts {
+		if len(descriptionList) == 0 {
+			return false, fmt.Errorf("no prompts found for class %s", class)
+		}
+	}
+
+	return true, nil
+}
 
 func (c *TaoClassifier) AddPrompt(label Label, description LabelDescription) (bool, error) {
 	if label == "" {

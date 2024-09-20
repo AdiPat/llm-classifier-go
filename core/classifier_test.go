@@ -200,3 +200,58 @@ func TestPredictOneObjectNumericalClasses(t *testing.T) {
 	})
 
 }
+
+func TestArePromptsLoaded(t *testing.T) {
+
+	t.Run("Returns false when no prompts are loaded", func(t *testing.T) {
+		classifier := NewTaoClassifier()
+
+		_, err := classifier.ArePromptsLoaded()
+
+		if err == nil {
+			t.Errorf("Expected error, got nil. ")
+		}
+	})
+
+	t.Run("Returns true when prompts are loaded", func(t *testing.T) {
+		classifier := NewTaoClassifier()
+
+		classifier.PromptTrain(map[Label][]LabelDescription{
+			"0": {"low parental support"},
+			"1": {"medium parental support"},
+			"2": {"high parental support"},
+		})
+
+		loaded, err := classifier.ArePromptsLoaded()
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+
+		if !loaded {
+			t.Errorf("Expected true, got false")
+		}
+	})
+
+	t.Run("Returns false when a particular class doesn't have descriptions", func(t *testing.T) {
+
+		classifier := NewTaoClassifier()
+
+		classifier.PromptTrain(map[Label][]LabelDescription{
+			"0": {"low parental support"},
+			"1": {},
+			"2": {"high parental support"},
+		})
+
+		loaded, err := classifier.ArePromptsLoaded()
+
+		if err == nil {
+			t.Errorf("Expected error, got nil")
+		}
+
+		if loaded {
+			t.Errorf("Expected false, got true")
+		}
+	})
+
+}
