@@ -1,4 +1,4 @@
-package main
+package examples
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	LLMClassifier "github.com/AdiPat/llm-classifier-go/core"
 )
 
-func main() {
+func MobilePriceExample() {
 	params := LLMClassifier.TaoClassifierOptions{
 		ModelId:             "mobile_price_classifier",
 		TrainingDatasetPath: "./datasets/mobile_price_train.csv",
