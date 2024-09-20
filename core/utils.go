@@ -117,3 +117,13 @@ func ExtractClasses(dataset []RowItem, targetColumn string) []string {
 
 	return classes
 }
+
+func CreateFolderIfNotExists(folderPath string) error {
+	if _, err := os.Stat(folderPath); os.IsNotExist(err) {
+		err := os.MkdirAll(folderPath, os.ModePerm)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
