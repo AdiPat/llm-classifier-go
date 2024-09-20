@@ -77,3 +77,57 @@ func (ai *AI) GenerateText(prompt string, opts ...GenerateTextOptions) (string, 
 
 	return result, nil
 }
+
+func (ai *AI) GenerateObject(prompt string, schema string, opts ...GenerateTextOptions) (interface{}, error) {
+	options := GenerateTextOptions{
+		Temperature: 0.5, // Default temperature
+		System:      "You are a helpful AI-assistant that generates text based on the given prompt.",
+		Verbose:     false,
+	}
+
+	promptWithSchema := fmt.Sprintf("%s\n Return the response in JSON as per the schema. \nSchema: %s", prompt, schema)
+
+	// Override with provided options if any
+	if len(opts) > 0 {
+		options = opts[0]
+	}
+
+	if options.Verbose {
+		fmt.Println("Generating text with prompt:", promptWithSchema)
+	}
+
+	ctx := context.Background()
+
+	params := openai.ChatCompletionNewParams{
+
+		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
+			openai.SystemMessage(options.System),
+			openai.UserMessage(promptWithSchema),
+		}),
+		Seed:        openai.Int(1),
+		Model:       openai.F(openai.ChatModelGPT4oMini),
+		Temperature: openai.Float(options.Temperature),
+	}
+
+	completions, err := ai.openaiClient.Chat.Completions.New(ctx, params)
+
+	contentStr := completions.Choices[0].Message.Content
+
+	if options.Verbose {
+		fmt.Println("LLM Response: ", contentStr)
+	}
+
+	if err != nil {
+		log.Fatal("GenerateObject: Failed to generate completions. ", err)
+		return nil, err
+	}
+
+	result, err := CleanGPTJson[interface{}](contentStr)
+
+	if err != nil {
+		log.Fatal("GenerateObject: Failed to generate completions. ", err)
+		return nil, err
+	}
+
+	return result, nil
+}
