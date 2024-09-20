@@ -66,8 +66,21 @@ func NewTaoClassifier(opts ...TaoClassifierOptions) *TaoClassifier {
 		panic("TargetColumn cannot be empty when TrainingDatasetPath is specified. ")
 	}
 
-	if options.TrainingDatasetPath != "" {
+	prompts := make(map[Label][]LabelDescription)
+
+	if options.TrainingDatasetPath != "" && options.TargetColumn != "" {
 		dataset, err = ReadCSVFile(options.TrainingDatasetPath)
+
+		// extract classes from dataset based on target column
+		classes := ExtractClasses(dataset, options.TargetColumn)
+
+		if len(classes) == 0 {
+			fmt.Printf("NewTaoClassifier: no classes found on targetColumn=%s for dataset\n", options.TargetColumn)
+		}
+
+		for _, class := range classes {
+			prompts[class] = []LabelDescription{}
+		}
 
 		if err != nil {
 			log.Fatal("NewTaoClassifier: Failed to read training dataset", err)
@@ -75,7 +88,7 @@ func NewTaoClassifier(opts ...TaoClassifierOptions) *TaoClassifier {
 	}
 
 	return &TaoClassifier{
-		prompts:          make(map[Label][]LabelDescription),
+		prompts:          prompts,
 		ai:               ai,
 		dataset:          dataset,
 		temperature:      options.Temperature,
@@ -160,17 +173,28 @@ func (c *TaoClassifier) Train() error {
 	maxDescriptions := c.promptSampleSize
 	selectedRows := make(map[int]bool)
 
+	for index := range selectedRows {
+		selectedRows[index] = false
+	}
+
+	fmt.Println("Dataset Size: ", len(c.dataset))
+	fmt.Println("Prompts Before: ", c.prompts)
+
 	for {
 		row, index := SelectRandomRow(c.dataset)
 
 		selectedRowsCount := CountSelectedRows(c.dataset, selectedRows)
 
 		if selectedRowsCount == len(c.dataset) {
+			fmt.Println("All rows have been selected. ")
 			break
 		}
 
 		if _, ok := selectedRows[index]; ok {
-			continue
+			if selectedRows[index] {
+				fmt.Println("Row already selected. ")
+				continue
+			}
 		}
 
 		for label, descriptionList := range c.prompts {
@@ -181,6 +205,8 @@ func (c *TaoClassifier) Train() error {
 
 			classificationProfile, err := c.GenerateClassifierProfile(label, row, ClassifierProfile{})
 
+			fmt.Println("Classification Profile: ", classificationProfile)
+
 			if err != nil {
 				log.Fatal("Train: Failed to generate classifier profile", err)
 			} else {
@@ -190,6 +216,8 @@ func (c *TaoClassifier) Train() error {
 
 		selectedRows[index] = true
 	}
+
+	fmt.Println("Prompts After: ", c.prompts)
 
 	return nil
 }
@@ -260,7 +288,7 @@ func (c *TaoClassifier) PredictOne(text string) (ClassificationResult, error) {
 
 	// TODO: Implement OpenAI API call
 	systemPrompt := fmt.Sprintf(`You are an AI assistant that performs classification. 
-	You will be given a map of labels and their corresponding descriptions. 
+	You will be given a map of predicted classes and their corresponding descriptions. 
 	Use this information to classify the given data point.
 	Respond in JSON with { predicted_class: <class>, "probability": <probability> }. 
 	The label should be only from the given labels.
