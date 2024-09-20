@@ -158,3 +158,64 @@ func TestCountSelectedRows(t *testing.T) {
 		}
 	})
 }
+
+func TestContains(t *testing.T) {
+	t.Run("Empty slice", func(t *testing.T) {
+		slice := []string{}
+		item := "item"
+
+		result := Contains(slice, item)
+		if result {
+			t.Errorf("Expected false, got true")
+		}
+	})
+
+	t.Run("Item not in slice", func(t *testing.T) {
+		slice := []string{"one", "two"}
+		item := "three"
+
+		result := Contains(slice, item)
+		if result {
+			t.Errorf("Expected false, got true")
+		}
+	})
+
+	t.Run("Item in slice", func(t *testing.T) {
+		slice := []string{"one", "two"}
+		item := "two"
+
+		result := Contains(slice, item)
+		if !result {
+			t.Errorf("Expected true, got false")
+		}
+	})
+}
+
+func TestExtractClasses(t *testing.T) {
+	t.Run("Empty dataset", func(t *testing.T) {
+		dataset := []RowItem{}
+		classes := ExtractClasses(dataset, "class")
+
+		if len(classes) != 0 {
+			t.Errorf("Expected empty classes, got %v", classes)
+		}
+	})
+
+	t.Run("Valid dataset", func(t *testing.T) {
+		dataset := []RowItem{
+			{"class": "A", "score": "10"},
+			{"class": "B", "score": "20"},
+			{"class": "A", "score": "15"},
+		}
+
+		classes := ExtractClasses(dataset, "class")
+
+		if !(reflect.DeepEqual(classes, []string{"A", "B"}) || reflect.DeepEqual(classes, []string{"B", "A"})) {
+			t.Errorf("Expected [A, B], got %v", classes)
+		}
+
+		if len(classes) != 2 {
+			t.Errorf("Expected 2 classes, got %v", classes)
+		}
+	})
+}

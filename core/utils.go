@@ -94,3 +94,26 @@ func CountSelectedRows(dataset []RowItem, selected map[int]bool) int {
 	}
 	return count
 }
+
+// contains checks if a slice contains a specific element
+func Contains(slice []string, item string) bool {
+	for _, element := range slice {
+		if element == item {
+			return true
+		}
+	}
+	return false
+}
+
+func ExtractClasses(dataset []RowItem, targetColumn string) []string {
+	classes := []string{}
+
+	for _, row := range dataset {
+		class := row[targetColumn]
+		if !Contains(classes, class) {
+			classes = append(classes, class)
+		}
+	}
+
+	return classes
+}
