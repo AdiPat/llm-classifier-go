@@ -18,9 +18,16 @@ func CleanGPTJson[T any](jsonStr string) (T, error) {
 		return result, fmt.Errorf("input JSON string is empty")
 	}
 
+	// Regular expression to capture JSON content inside ```json ... ```
+	re := regexp.MustCompile("(?s).*?```json\\s*(.*?)\\s*```.*")
+	matches := re.FindStringSubmatch(jsonStr)
+	if len(matches) >= 2 {
+		jsonStr = matches[1]
+	}
+
 	// Remove the ```json\n at the beginning and \n``` at the end
-	re := regexp.MustCompile("^```json\\n|\\n```$")
-	jsonStr = re.ReplaceAllString(jsonStr, "")
+	re2 := regexp.MustCompile("^```json\\n|\\n```$")
+	jsonStr = re2.ReplaceAllString(jsonStr, "")
 
 	// Remove all newlines and carriage returns
 	jsonStr = strings.ReplaceAll(jsonStr, "\n", "")

@@ -45,6 +45,27 @@ func TestCleanGPTJSON(t *testing.T) {
 			t.Errorf("Expected %v, got %v", expected, result)
 		}
 	})
+
+	t.Run("Strips off plain-text before and after JSON inside markdown", func(t *testing.T) {
+		llmResponse := `LLM Response:  Here is a JSON object based on the provided schema:` + "```" + "json" +
+			`{
+						"name": "Alice Johnson",
+						"age": 30,
+						"description": "A passionate software developer with a love for open-source projects.",
+						"attributes": {
+							"key": "innovative thinker"
+						},
+						"tags": ["developer", "open-source", "technology", "innovation"]
+						}` + "```"
+
+		_, err := CleanGPTJson[TestType](llmResponse)
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+
+	})
+
 }
 
 func TestReadCSVFile(t *testing.T) {
