@@ -1,10 +1,12 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 type TaoConfig struct {
@@ -77,4 +79,57 @@ func GetTaoConfig() *TaoConfig {
 		instance.Init()
 	})
 	return instance
+}
+
+type SaveModelToFileOptions struct {
+	Overwrite bool
+}
+
+func (tc *TaoConfig) SaveModelToFile(model SavedTaoModel, opts ...SaveModelToFileOptions) error {
+	modelId := model.ModelId
+
+	if modelId == "" {
+		// TODO: not sure if this is a good idea to autogenerate the ID
+		// TODO: use UUID instead for safety in distributed systems
+		fmt.Println("SaveModelToFile: ModelId is empty. Autogenerating ID. ")
+		modelId = fmt.Sprint(time.Now().Unix())
+	}
+
+	options := SaveModelToFileOptions{
+		Overwrite: true,
+	}
+
+	if len(opts) > 0 {
+		options = opts[0]
+	}
+
+	// Save the model to the file
+	modelFilePath := filepath.Join(tc.modelsFolder, modelId+".json")
+
+	taoModelBytes, err := json.Marshal(model)
+
+	if err != nil {
+		fmt.Println("SaveModelToFile: Error marshalling model:", err)
+		return err
+	}
+
+	// check if file exists
+	if _, err := os.Stat(modelFilePath); err == nil {
+		// file exists
+		if options.Overwrite {
+			fmt.Println("SaveModelToFile: Model file already exists. Rewriting.")
+		} else {
+			fmt.Println("SaveModelToFile: Model file already exists. Skipping.")
+			return nil
+		}
+	}
+
+	err = os.WriteFile(modelFilePath, taoModelBytes, 0644)
+
+	if err != nil {
+		fmt.Println("SaveModelToFile: Error writing model to file:", err)
+		return err
+	}
+
+	return nil
 }
