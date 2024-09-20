@@ -130,10 +130,73 @@ func TestPredictOneObject(t *testing.T) {
 			"FinalGrade":                80,
 		}
 
-		_, err := classifier.PredictOneObject(input)
+		result, err := classifier.PredictOneObject(input)
 
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
 		}
+
+		if result.PredictedClass == "" {
+			t.Errorf("Expected non-empty predicted class, got empty")
+		}
+
+		if result.Probability == -1 {
+			t.Errorf("Expected non-empty probability, got empty")
+		}
+
+		if result.Label == "" {
+			t.Errorf("Expected non-empty label, got empty")
+		}
+
 	})
+
+}
+
+func TestPredictOneObjectNumericalClasses(t *testing.T) {
+
+	t.Run("Correctly classifies single example with object input with trained prompts having numerical classes", func(t *testing.T) {
+		params := TaoClassifierOptions{
+			TrainingDatasetPath: "../datasets/student_performance.csv",
+			TargetColumn:        "ParentalSupport",
+		}
+
+		classifier := NewTaoClassifier(params)
+
+		classifier.PromptTrain(map[Label][]LabelDescription{
+			"0": {"low parental support"},
+			"1": {"medium parental support"},
+			"2": {"high parental support"},
+		})
+
+		input := map[string]interface{}{
+			"StudentID":                 1,
+			"Name":                      "John",
+			"Gender":                    "Male",
+			"AttendanceRate":            85,
+			"StudyHoursPerWeek":         15,
+			"PreviousGrade":             78,
+			"ExtracurricularActivities": 1,
+			"FinalGrade":                80,
+		}
+
+		result, err := classifier.PredictOneObject(input)
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+
+		if result.PredictedClass == "" {
+			t.Errorf("Expected non-empty predicted class, got empty")
+		}
+
+		if result.Probability == -1 {
+			t.Errorf("Expected non-empty probability, got empty")
+		}
+
+		if result.Label == "" {
+			t.Errorf("Expected non-empty label, got empty")
+		}
+
+	})
+
 }

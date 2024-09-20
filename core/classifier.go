@@ -24,9 +24,9 @@ type TaoClassifier struct {
 }
 
 type ClassificationResult struct {
-	Label          Label   `json:"label"`
-	PredictedClass Class   `json:"predicted_class"`
-	Probability    float64 `json:"probability"`
+	Label          Label       `json:"label"`
+	PredictedClass interface{} `json:"predicted_class"` // since numerical classes throw an error when unmarshalling if it's a number
+	Probability    float64     `json:"probability"`
 }
 
 type ClassifierProfile struct {
@@ -367,6 +367,7 @@ func (c *TaoClassifier) PredictOne(text string) (ClassificationResult, error) {
 	result, err := CleanGPTJson[ClassificationResult](text)
 
 	if err != nil {
+		fmt.Println("PredictOne: failed to clean GPT JSON:", err)
 		return ClassificationResult{Label: "", Probability: -1}, err
 	}
 
@@ -379,7 +380,7 @@ func (c *TaoClassifier) PredictOne(text string) (ClassificationResult, error) {
 	return result, nil
 }
 
-func (c *TaoClassifier) PredictOneObject(obj interface{}) (ClassificationResult, error) {
+func (c *TaoClassifier) PredictOneObject(obj any) (ClassificationResult, error) {
 	objStr, err := json.Marshal(obj)
 	if err != nil {
 		return ClassificationResult{Label: "", Probability: -1}, fmt.Errorf("PredictOneObject: failed to marshal object: %v", err)
@@ -388,7 +389,7 @@ func (c *TaoClassifier) PredictOneObject(obj interface{}) (ClassificationResult,
 	return c.PredictOne(string(objStr))
 }
 
-func (c *TaoClassifier) PredictManyObjects(objs []interface{}) ([]ClassificationResult, error) {
+func (c *TaoClassifier) PredictManyObjects(objs []any) ([]ClassificationResult, error) {
 
 	if len(objs) == 0 {
 		return []ClassificationResult{}, fmt.Errorf("PredictManyObjects: objs cannot be empty")
@@ -400,10 +401,10 @@ func (c *TaoClassifier) PredictManyObjects(objs []interface{}) ([]Classification
 		result, err := c.PredictOneObject(obj)
 
 		if err != nil {
-			return []ClassificationResult{}, err
+			results = append(results, ClassificationResult{Label: "", PredictedClass: "", Probability: -1})
+		} else {
+			results = append(results, result)
 		}
-
-		results = append(results, result)
 	}
 
 	return results, nil
