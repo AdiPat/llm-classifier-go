@@ -44,5 +44,34 @@ func TestPredictOne(t *testing.T) {
 			t.Errorf("Expected no error, got %v", err)
 		}
 	})
+}
 
+func TestGenerateClassificationProfile(t *testing.T) {
+
+	t.Run("Generates a classifier profile with correct schema", func(t *testing.T) {
+
+		classifier := NewTaoClassifier()
+
+		rowItem := RowItem{
+			"student_id":                 "1",
+			"name":                       "John",
+			"gender":                     "Male",
+			"attendance_rate":            "85",
+			"study_hours_per_week":       "15",
+			"previous_grade":             "78",
+			"extracurricular_activities": "1",
+			"parental_support":           "High",
+			"final_grade":                "80",
+		}
+
+		classifierProfile, _ := classifier.GenerateClassifierProfile("parental_support", rowItem, ClassifierProfile{})
+
+		if classifierProfile.Label != "parental_support" {
+			t.Errorf("Expected parental_support, got %v", classifierProfile.Label)
+		}
+
+		if len(classifierProfile.Description) == 0 {
+			t.Errorf("Expected non-empty description, got empty")
+		}
+	})
 }

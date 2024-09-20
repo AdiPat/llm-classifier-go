@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -21,6 +22,11 @@ type TaoClassifier struct {
 type ClassificationResult struct {
 	Label       string  `json:"label"`
 	Probability float64 `json:"probability"`
+}
+
+type ClassifierProfile struct {
+	Label       string   `json:"label"`
+	Description []string `json:"description"`
 }
 
 func NewTaoClassifier() *TaoClassifier {
@@ -54,6 +60,57 @@ func (c *TaoClassifier) PromptTrain(prompts map[Label][]LabelDescription) (bool,
 	}
 
 	return true, nil
+}
+
+func (c *TaoClassifier) GenerateClassifierProfile(label Label, rowItem RowItem, currentClassifierProfile ClassifierProfile) (ClassifierProfile, error) {
+	if len(rowItem) == 0 {
+		return ClassifierProfile{}, fmt.Errorf("rowItem cannot be empty")
+	}
+
+	combinedRowItems := ""
+
+	for key, value := range rowItem {
+		combinedRowItems += fmt.Sprintf("%s: %s\n", key, value)
+	}
+
+	// TODO: find a way to sync the type and schema in the prompt
+	systemPrompt := `You are an AI assistant that performs classification.
+					You are tasked with generating a 'classification profile' given a set of row items for the given label.
+					In the description, include relationships between variables in the row.
+					Don't include the row item values in the attributes, include anything additional discovered in the data.
+					Respond in JSON with { label: string <label>, "description": string[] <description array> } }.
+					Based on the label, identify features within the row items that are relevant to the label.`
+
+	userPrompt := fmt.Sprintf(`Generate a classification profile for the label %s given the following row items: %s`, label, combinedRowItems)
+
+	ctx := context.Background()
+
+	params := openai.ChatCompletionNewParams{
+		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
+			openai.SystemMessage(systemPrompt),
+			openai.UserMessage(userPrompt),
+		}),
+		Seed:  openai.Int(1),
+		Model: openai.F(openai.ChatModelGPT4oMini),
+	}
+
+	completions, err := c.openaiClient.Chat.Completions.New(ctx, params)
+
+	if err != nil {
+		log.Fatal("GenerateClassifierProfile: Failed to generate completions", err)
+		return ClassifierProfile{}, err
+	}
+
+	fmt.Println(completions.Choices[0].Message.Content)
+
+	result, err := CleanGPTJson[ClassifierProfile](completions.Choices[0].Message.Content)
+
+	if err != nil {
+		log.Fatal("GenerateClassifierProfile: Failed to generate completions", err)
+		return ClassifierProfile{}, err
+	}
+
+	return result, nil
 }
 
 func (c *TaoClassifier) AddPrompt(label Label, description LabelDescription) (bool, error) {
