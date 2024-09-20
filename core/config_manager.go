@@ -124,6 +124,15 @@ func (tc *TaoConfig) SaveModelToFile(model SavedTaoModel, opts ...SaveModelToFil
 		}
 	}
 
+	file, err := os.OpenFile(modelFilePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+
+	if err != nil {
+		fmt.Println("SaveModelToFile: Error opening/creating file:", err)
+		return "", err
+	}
+
+	defer file.Close()
+
 	err = os.WriteFile(modelFilePath, taoModelBytes, 0644)
 
 	if err != nil {
