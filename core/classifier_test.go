@@ -106,3 +106,34 @@ func TestGenerateClassificationProfile(t *testing.T) {
 		}
 	})
 }
+
+func TestPredictOneObject(t *testing.T) {
+
+	t.Run("Correctly classifies single example with object input", func(t *testing.T) {
+		params := TaoClassifierOptions{
+			TrainingDatasetPath: "../datasets/student_performance.csv",
+			TargetColumn:        "ParentalSupport",
+		}
+
+		classifier := NewTaoClassifier(params)
+
+		classifier.Train()
+
+		input := map[string]interface{}{
+			"StudentID":                 1,
+			"Name":                      "John",
+			"Gender":                    "Male",
+			"AttendanceRate":            85,
+			"StudyHoursPerWeek":         15,
+			"PreviousGrade":             78,
+			"ExtracurricularActivities": 1,
+			"FinalGrade":                80,
+		}
+
+		_, err := classifier.PredictOneObject(input)
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+	})
+}

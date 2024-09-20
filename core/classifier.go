@@ -382,7 +382,7 @@ func (c *TaoClassifier) PredictOne(text string) (ClassificationResult, error) {
 func (c *TaoClassifier) PredictOneObject(obj interface{}) (ClassificationResult, error) {
 	objStr, err := json.Marshal(obj)
 	if err != nil {
-		return ClassificationResult{Label: "", Probability: -1}, fmt.Errorf("failed to marshal object: %v", err)
+		return ClassificationResult{Label: "", Probability: -1}, fmt.Errorf("PredictOneObject: failed to marshal object: %v", err)
 	}
 
 	return c.PredictOne(string(objStr))
@@ -391,7 +391,7 @@ func (c *TaoClassifier) PredictOneObject(obj interface{}) (ClassificationResult,
 func (c *TaoClassifier) PredictManyObjects(objs []interface{}) ([]ClassificationResult, error) {
 
 	if len(objs) == 0 {
-		return []ClassificationResult{}, fmt.Errorf("objs cannot be empty")
+		return []ClassificationResult{}, fmt.Errorf("PredictManyObjects: objs cannot be empty")
 	}
 
 	var results []ClassificationResult
