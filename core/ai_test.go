@@ -4,15 +4,6 @@ import (
 	"testing"
 )
 
-type TestType struct {
-	// Add fields here
-	name        string
-	age         int
-	description string
-	attributes  map[string]string
-	tags        []string
-}
-
 func TestGenerateText(t *testing.T) {
 	t.Run("Generates some text based on arbitrary prompt. ", func(t *testing.T) {
 		ai := NewAI()

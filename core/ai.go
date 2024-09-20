@@ -78,7 +78,7 @@ func (ai *AI) GenerateText(prompt string, opts ...GenerateTextOptions) (string, 
 	return result, nil
 }
 
-func (ai *AI) GenerateObject(prompt string, schema string, opts ...GenerateTextOptions) (interface{}, error) {
+func (ai *AI) GenerateObject(prompt string, schema string, opts ...GenerateTextOptions) (any, error) {
 	options := GenerateTextOptions{
 		Temperature: 0.5, // Default temperature
 		System:      "You are a helpful AI-assistant that generates text based on the given prompt.",
@@ -122,12 +122,12 @@ func (ai *AI) GenerateObject(prompt string, schema string, opts ...GenerateTextO
 		return nil, err
 	}
 
-	result, err := CleanGPTJson[interface{}](contentStr)
+	resultFinal, err := CleanGPTJson[interface{}](contentStr)
 
 	if err != nil {
-		log.Fatal("GenerateObject: Failed to generate completions. ", err)
+		log.Fatal("GenerateObject: Failed to clean GPT JSON. ", err)
 		return nil, err
 	}
 
-	return result, nil
+	return resultFinal, nil
 }

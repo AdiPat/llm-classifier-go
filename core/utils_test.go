@@ -58,7 +58,7 @@ func TestCleanGPTJSON(t *testing.T) {
 						"tags": ["developer", "open-source", "technology", "innovation"]
 						}` + "```"
 
-		_, err := CleanGPTJson[TestType](llmResponse)
+		_, err := CleanGPTJson[interface{}](llmResponse)
 
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
