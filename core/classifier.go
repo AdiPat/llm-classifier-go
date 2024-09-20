@@ -11,10 +11,11 @@ type Label = string
 type LabelDescription = string
 
 type TaoClassifier struct {
-	prompts     map[Label][]LabelDescription // mapping between label -> array of descriptions of label (prompts)
-	ai          *AI
-	dataset     []RowItem
-	temperature float64
+	prompts          map[Label][]LabelDescription // mapping between label -> array of descriptions of label (prompts)
+	ai               *AI
+	dataset          []RowItem
+	temperature      float64
+	promptSampleSize int
 }
 
 type ClassificationResult struct {
@@ -30,12 +31,14 @@ type ClassifierProfile struct {
 type TaoClassifierOptions struct {
 	TrainingDatasetPath string
 	Temperature         float64
+	PromptSampleSize    int
 }
 
 func NewTaoClassifier(opts ...TaoClassifierOptions) *TaoClassifier {
 	options := TaoClassifierOptions{
 		TrainingDatasetPath: "",
 		Temperature:         0.5,
+		PromptSampleSize:    10,
 	}
 
 	if len(opts) > 0 {
@@ -61,10 +64,11 @@ func NewTaoClassifier(opts ...TaoClassifierOptions) *TaoClassifier {
 	}
 
 	return &TaoClassifier{
-		prompts:     make(map[Label][]LabelDescription),
-		ai:          ai,
-		dataset:     dataset,
-		temperature: options.Temperature,
+		prompts:          make(map[Label][]LabelDescription),
+		ai:               ai,
+		dataset:          dataset,
+		temperature:      options.Temperature,
+		promptSampleSize: options.PromptSampleSize,
 	}
 }
 
@@ -118,6 +122,33 @@ func (c *TaoClassifier) GenerateClassifierProfile(label Label, rowItem RowItem, 
 	}
 
 	return result, nil
+}
+
+func (c *TaoClassifier) Train() error {
+	maxDescriptions := c.promptSampleSize
+
+	for _, row := range c.dataset {
+		for label, descriptionList := range c.prompts {
+
+			classificationProfile, err := c.GenerateClassifierProfile(label, row, ClassifierProfile{})
+
+			if err != nil {
+				log.Fatal("Train: Failed to generate classifier profile", err)
+				return err
+			}
+
+			c.prompts[label] = append(descriptionList, classificationProfile.Description...)
+		}
+	}
+
+	// restrict prompts to sample size to avoid overfitting
+	for label, descriptionList := range c.prompts {
+		if len(descriptionList) > maxDescriptions {
+			c.prompts[label] = descriptionList[:maxDescriptions]
+		}
+	}
+
+	return nil
 }
 
 func (c *TaoClassifier) AddPrompt(label Label, description LabelDescription) (bool, error) {
