@@ -31,16 +31,11 @@ func TwitterSentimentAnalysisExample() {
 
 	testSet = testSet[:10]
 
-	testSetWithoutSentiment := make([]LLMClassifier.RowItem, len(testSet))
+	testSetWithoutSentiment := []LLMClassifier.RowItem{}
 
 	for _, rowItem := range testSet {
-		rowItemWithoutSentiment := make(LLMClassifier.RowItem)
-
-		for key, value := range rowItem {
-			if key != "Sentiment" {
-				rowItemWithoutSentiment[key] = value
-			}
-		}
+		rowItemWithoutSentiment := rowItem
+		delete(rowItemWithoutSentiment, "Sentiment")
 
 		testSetWithoutSentiment = append(testSetWithoutSentiment, rowItemWithoutSentiment)
 	}
@@ -56,7 +51,7 @@ func TwitterSentimentAnalysisExample() {
 	}
 
 	for index, prediction := range predictions {
-		println("RowItem: ", testSetWithoutSentiment[index])
+		fmt.Printf("RowItem: %+v\n", testSetWithoutSentiment[index])
 		fmt.Printf("Prediction: %+v\n", prediction)
 	}
 
