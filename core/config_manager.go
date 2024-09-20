@@ -85,7 +85,7 @@ type SaveModelToFileOptions struct {
 	Overwrite bool
 }
 
-func (tc *TaoConfig) SaveModelToFile(model SavedTaoModel, opts ...SaveModelToFileOptions) error {
+func (tc *TaoConfig) SaveModelToFile(model SavedTaoModel, opts ...SaveModelToFileOptions) (string, error) {
 	modelId := model.ModelId
 
 	if modelId == "" {
@@ -110,7 +110,7 @@ func (tc *TaoConfig) SaveModelToFile(model SavedTaoModel, opts ...SaveModelToFil
 
 	if err != nil {
 		fmt.Println("SaveModelToFile: Error marshalling model:", err)
-		return err
+		return "", err
 	}
 
 	// check if file exists
@@ -120,7 +120,7 @@ func (tc *TaoConfig) SaveModelToFile(model SavedTaoModel, opts ...SaveModelToFil
 			fmt.Println("SaveModelToFile: Model file already exists. Rewriting.")
 		} else {
 			fmt.Println("SaveModelToFile: Model file already exists. Skipping.")
-			return nil
+			return "", nil
 		}
 	}
 
@@ -128,8 +128,8 @@ func (tc *TaoConfig) SaveModelToFile(model SavedTaoModel, opts ...SaveModelToFil
 
 	if err != nil {
 		fmt.Println("SaveModelToFile: Error writing model to file:", err)
-		return err
+		return "", err
 	}
 
-	return nil
+	return modelId, nil
 }
