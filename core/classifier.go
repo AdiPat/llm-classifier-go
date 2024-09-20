@@ -484,6 +484,27 @@ func (c *TaoClassifier) PredictOne(text string) (ClassificationResult, error) {
 	return result, nil
 }
 
+func (c *TaoClassifier) PredictMany(texts []string) ([]ClassificationResult, error) {
+	if len(texts) == 0 {
+		return []ClassificationResult{}, fmt.Errorf("texts cannot be empty")
+	}
+
+	var results []ClassificationResult
+
+	for _, text := range texts {
+		// TODO: if multiple values fit into the prompt, then use a single prompt - this is an area of optimization
+		result, err := c.PredictOne(text)
+
+		if err != nil {
+			return []ClassificationResult{}, err
+		}
+
+		results = append(results, result)
+	}
+
+	return results, nil
+}
+
 func (c *TaoClassifier) PredictOneObject(obj any) (ClassificationResult, error) {
 	objStr, err := json.Marshal(obj)
 	if err != nil {
@@ -514,25 +535,20 @@ func (c *TaoClassifier) PredictManyObjects(objs []any) ([]ClassificationResult, 
 	return results, nil
 }
 
-func (c *TaoClassifier) PredictMany(texts []string) ([]ClassificationResult, error) {
-	if len(texts) == 0 {
-		return []ClassificationResult{}, fmt.Errorf("texts cannot be empty")
+func (c *TaoClassifier) PredictOneRowItem(rowItem RowItem) (ClassificationResult, error) {
+	var rowItemAny any = rowItem
+
+	return c.PredictOneObject(rowItemAny)
+}
+
+func (c *TaoClassifier) PredictManyRowItems(rowItems []RowItem) ([]ClassificationResult, error) {
+	var rowItemsAny []any
+
+	for _, rowItem := range rowItems {
+		rowItemsAny = append(rowItemsAny, rowItem)
 	}
 
-	var results []ClassificationResult
-
-	for _, text := range texts {
-		// TODO: if multiple values fit into the prompt, then use a single prompt - this is an area of optimization
-		result, err := c.PredictOne(text)
-
-		if err != nil {
-			return []ClassificationResult{}, err
-		}
-
-		results = append(results, result)
-	}
-
-	return results, nil
+	return c.PredictManyObjects(rowItemsAny)
 }
 
 func (c *TaoClassifier) GetSavableModel() SavedTaoModel {
