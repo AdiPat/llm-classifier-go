@@ -6,6 +6,10 @@ This project is inspired by [lamini-ai/llm-classifier](https://github.com/lamini
 
 This is a reusable Go-based LLM Classifier module designed to perform classification tasks using large language models (LLMs). The module is lightweight, highly efficient, and can be easily integrated into any Go-based application.
 
+I forsee uses for this in cases where training an ML model for classification is not possible because of lack of data, expertise, costs, or no resources. Good for general-purpose and ambiguous classification tasks where training data is unavailable. Prompts in, structured data out.
+
+**NOTE:** This project is work-in-progress and is under active development.
+
 # Features
 
 1. **LLM Integration:** Supports the use of various large language models.
