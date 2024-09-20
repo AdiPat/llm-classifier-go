@@ -8,6 +8,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type Class = string
 type Label = string
 type LabelDescription = string
 
@@ -21,8 +22,9 @@ type TaoClassifier struct {
 }
 
 type ClassificationResult struct {
-	Label       string  `json:"label"`
-	Probability float64 `json:"probability"`
+	Label          Label   `json:"label"`
+	PredictedClass Class   `json:"predicted_class"`
+	Probability    float64 `json:"probability"`
 }
 
 type ClassifierProfile struct {
@@ -249,10 +251,10 @@ func (c *TaoClassifier) ClearPrompts() {
 
 func (c *TaoClassifier) PredictOne(text string) (ClassificationResult, error) {
 	// convert c.prompts to a string
-	labelDescriptors := "Labels->Description\n"
-	for label, descriptionList := range c.prompts {
+	classDescriptors := "Class->Description\n"
+	for className, descriptionList := range c.prompts {
 		for _, description := range descriptionList {
-			labelDescriptors += fmt.Sprintf("%s: %s\n", label, description)
+			classDescriptors += fmt.Sprintf("%s: %s\n", className, description)
 		}
 	}
 
@@ -260,9 +262,9 @@ func (c *TaoClassifier) PredictOne(text string) (ClassificationResult, error) {
 	systemPrompt := fmt.Sprintf(`You are an AI assistant that performs classification. 
 	You will be given a map of labels and their corresponding descriptions. 
 	Use this information to classify the given data point.
-	Respond in JSON with { label: <label>, "probability": <probability> }. 
+	Respond in JSON with { predicted_class: <class>, "probability": <probability> }. 
 	The label should be only from the given labels.
-	Context: %s\n`, labelDescriptors)
+	Context: %s\n`, classDescriptors)
 
 	if text == "" {
 		return ClassificationResult{Label: "", Probability: -1}, fmt.Errorf("text cannot be empty")
@@ -280,6 +282,12 @@ func (c *TaoClassifier) PredictOne(text string) (ClassificationResult, error) {
 
 	if err != nil {
 		return ClassificationResult{Label: "", Probability: -1}, err
+	}
+
+	if c.targetColumn != "" {
+		result.Label = c.targetColumn
+	} else {
+		result.Label = ""
 	}
 
 	return result, nil

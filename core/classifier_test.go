@@ -18,7 +18,7 @@ func TestPredictOne(t *testing.T) {
 
 		result, err := classifier.PredictOne("Meow")
 
-		if result.Label != "cat" {
+		if result.PredictedClass != "cat" {
 			t.Errorf("Expected cat, got %v", result.Label)
 		}
 
@@ -32,7 +32,7 @@ func TestPredictOne(t *testing.T) {
 
 		resultDog, err := classifier.PredictOne("Woof")
 
-		if resultDog.Label != "dog" {
+		if resultDog.PredictedClass != "dog" {
 			t.Errorf("Expected dog, got %v", resultDog.Label)
 		}
 
