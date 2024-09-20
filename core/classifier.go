@@ -11,8 +11,10 @@ type Label = string
 type LabelDescription = string
 
 type TaoClassifier struct {
-	prompts map[Label][]LabelDescription // mapping between label -> array of descriptions of label (prompts)
-	ai      *AI
+	prompts     map[Label][]LabelDescription // mapping between label -> array of descriptions of label (prompts)
+	ai          *AI
+	dataset     []RowItem
+	temperature float64
 }
 
 type ClassificationResult struct {
@@ -25,7 +27,21 @@ type ClassifierProfile struct {
 	Description []string `json:"description"`
 }
 
-func NewTaoClassifier() *TaoClassifier {
+type TaoClassifierOptions struct {
+	TrainingDatasetPath string
+	Temperature         float64
+}
+
+func NewTaoClassifier(opts ...TaoClassifierOptions) *TaoClassifier {
+	options := TaoClassifierOptions{
+		TrainingDatasetPath: "",
+		Temperature:         0.5,
+	}
+
+	if len(opts) > 0 {
+		options = opts[0]
+	}
+
 	err := godotenv.Load("../.env")
 
 	if err != nil {
@@ -34,9 +50,21 @@ func NewTaoClassifier() *TaoClassifier {
 
 	ai := NewAI()
 
+	dataset := []RowItem{}
+
+	if options.TrainingDatasetPath != "" {
+		dataset, err = ReadCSVFile(options.TrainingDatasetPath)
+
+		if err != nil {
+			log.Fatal("NewTaoClassifier: Failed to read training dataset", err)
+		}
+	}
+
 	return &TaoClassifier{
-		prompts: make(map[Label][]LabelDescription),
-		ai:      ai,
+		prompts:     make(map[Label][]LabelDescription),
+		ai:          ai,
+		dataset:     dataset,
+		temperature: options.Temperature,
 	}
 }
 
