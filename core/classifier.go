@@ -51,6 +51,11 @@ func NewTaoClassifier(opts ...TaoClassifierOptions) *TaoClassifier {
 		options = opts[0]
 	}
 
+	if options.PromptSampleSize <= 0 {
+		// set to default
+		options.PromptSampleSize = 10
+	}
+
 	err := godotenv.Load("../.env")
 
 	if err != nil {
@@ -79,7 +84,9 @@ func NewTaoClassifier(opts ...TaoClassifierOptions) *TaoClassifier {
 		}
 
 		for _, class := range classes {
-			prompts[class] = []LabelDescription{}
+			if _, ok := prompts[class]; !ok {
+				prompts[class] = []LabelDescription{}
+			}
 		}
 
 		if err != nil {
@@ -94,6 +101,20 @@ func NewTaoClassifier(opts ...TaoClassifierOptions) *TaoClassifier {
 		temperature:      options.Temperature,
 		promptSampleSize: options.PromptSampleSize,
 		targetColumn:     options.TargetColumn,
+	}
+}
+
+func (c *TaoClassifier) InitializePromptsFromDataset() {
+	classes := ExtractClasses(c.dataset, c.targetColumn)
+
+	if len(classes) == 0 {
+		fmt.Printf("NewTaoClassifier: no classes found on targetColumn=%s for dataset\n", c.targetColumn)
+	}
+
+	for _, class := range classes {
+		if _, ok := c.prompts[class]; !ok {
+			c.prompts[class] = []LabelDescription{}
+		}
 	}
 }
 
@@ -173,15 +194,22 @@ func (c *TaoClassifier) Train() error {
 	maxDescriptions := c.promptSampleSize
 	selectedRows := make(map[int]bool)
 
-	for index := range selectedRows {
+	for index := range len(c.dataset) {
 		selectedRows[index] = false
 	}
 
+	fmt.Printf("selectedRows: %+v\n", selectedRows)
 	fmt.Println("Dataset Size: ", len(c.dataset))
 	fmt.Println("Prompts Before: ", c.prompts)
 
+	c.InitializePromptsFromDataset()
+
+	fmt.Println("Prompts After Initialization: ", c.prompts)
+
 	for {
 		row, index := SelectRandomRow(c.dataset)
+
+		// fmt.Printf("Row: %+v | %d\n | SELECTED: %t\n", row, index, selectedRows[index])
 
 		selectedRowsCount := CountSelectedRows(c.dataset, selectedRows)
 
@@ -190,27 +218,26 @@ func (c *TaoClassifier) Train() error {
 			break
 		}
 
-		if _, ok := selectedRows[index]; ok {
-			if selectedRows[index] {
-				fmt.Println("Row already selected. ")
-				continue
-			}
+		if selectedRows[index] {
+			fmt.Println("Row already selected. ", selectedRows[index])
+			continue
 		}
 
-		for label, descriptionList := range c.prompts {
+		for class, descriptionList := range c.prompts {
 			// if label already has enough prompts, skip to the next label
 			if len(descriptionList) >= maxDescriptions {
+				fmt.Println("Label already has enough prompts. ", class, len(descriptionList), maxDescriptions)
 				continue
 			}
 
-			classificationProfile, err := c.GenerateClassifierProfile(label, row, ClassifierProfile{})
+			classificationProfile, err := c.GenerateClassifierProfile(class, row, ClassifierProfile{})
 
 			fmt.Println("Classification Profile: ", classificationProfile)
 
 			if err != nil {
 				log.Fatal("Train: Failed to generate classifier profile", err)
 			} else {
-				c.prompts[label] = append(descriptionList, classificationProfile.Description...)
+				c.prompts[class] = append(descriptionList, classificationProfile.Description...)
 			}
 		}
 

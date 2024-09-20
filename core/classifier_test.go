@@ -44,6 +44,37 @@ func TestPredictOne(t *testing.T) {
 			t.Errorf("Expected no error, got %v", err)
 		}
 	})
+
+	t.Run("Correctly classifies single example with training from dataset", func(t *testing.T) {
+
+		params := TaoClassifierOptions{
+			TrainingDatasetPath: "../datasets/student_performance.csv",
+			TargetColumn:        "ParentalSupport",
+		}
+
+		classifier := NewTaoClassifier(params)
+
+		classifier.Train()
+
+		input := `
+			{
+				"StudentID": 1,
+				"Name": "John",
+				"Gender": "Male",
+				"AttendanceRate": 85,
+				"StudyHoursPerWeek": 15,
+				"PreviousGrade": 78,
+				"ExtracurricularActivities": 1,
+				"FinalGrade": 80
+			}
+		`
+
+		_, err := classifier.PredictOne(input)
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+	})
 }
 
 func TestGenerateClassificationProfile(t *testing.T) {
