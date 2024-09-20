@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -376,6 +377,36 @@ func (c *TaoClassifier) PredictOne(text string) (ClassificationResult, error) {
 	}
 
 	return result, nil
+}
+
+func (c *TaoClassifier) PredictOneObject(obj interface{}) (ClassificationResult, error) {
+	objStr, err := json.Marshal(obj)
+	if err != nil {
+		return ClassificationResult{Label: "", Probability: -1}, fmt.Errorf("failed to marshal object: %v", err)
+	}
+
+	return c.PredictOne(string(objStr))
+}
+
+func (c *TaoClassifier) PredictManyObjects(objs []interface{}) ([]ClassificationResult, error) {
+
+	if len(objs) == 0 {
+		return []ClassificationResult{}, fmt.Errorf("objs cannot be empty")
+	}
+
+	var results []ClassificationResult
+
+	for _, obj := range objs {
+		result, err := c.PredictOneObject(obj)
+
+		if err != nil {
+			return []ClassificationResult{}, err
+		}
+
+		results = append(results, result)
+	}
+
+	return results, nil
 }
 
 func (c *TaoClassifier) PredictMany(texts []string) ([]ClassificationResult, error) {
