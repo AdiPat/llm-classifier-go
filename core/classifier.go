@@ -45,10 +45,11 @@ type TaoClassifierOptions struct {
 }
 
 type SavedTaoModel struct {
+	ModelId          string
 	Prompts          map[Label][]LabelDescription
 	Temperature      float64
 	PromptSampleSize int
-	TaregtColumn     string
+	TargetColumn     string
 }
 
 func NewTaoClassifier(opts ...TaoClassifierOptions) *TaoClassifier {
@@ -313,7 +314,7 @@ func (c *TaoClassifier) SaveModel() (bool, error) {
 		Prompts:          c.prompts,
 		Temperature:      c.temperature,
 		PromptSampleSize: c.promptSampleSize,
-		TaregtColumn:     c.targetColumn,
+		TargetColumn:     c.targetColumn,
 	}
 
 	savedTaoModelStr, err := json.Marshal(savedTaoModel)
