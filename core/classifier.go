@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -14,6 +15,7 @@ type TaoClassifier struct {
 	prompts          map[Label][]LabelDescription // mapping between label -> array of descriptions of label (prompts)
 	ai               *AI
 	dataset          []RowItem
+	targetColumn     string
 	temperature      float64
 	promptSampleSize int
 }
@@ -30,6 +32,7 @@ type ClassifierProfile struct {
 
 type TaoClassifierOptions struct {
 	TrainingDatasetPath string
+	TargetColumn        string
 	Temperature         float64
 	PromptSampleSize    int
 }
@@ -37,6 +40,7 @@ type TaoClassifierOptions struct {
 func NewTaoClassifier(opts ...TaoClassifierOptions) *TaoClassifier {
 	options := TaoClassifierOptions{
 		TrainingDatasetPath: "",
+		TargetColumn:        "",
 		Temperature:         0.5,
 		PromptSampleSize:    10,
 	}
@@ -55,6 +59,11 @@ func NewTaoClassifier(opts ...TaoClassifierOptions) *TaoClassifier {
 
 	dataset := []RowItem{}
 
+	if options.TrainingDatasetPath != "" && options.TargetColumn == "" {
+		log.Fatal("NewTaoClassifier: TargetColumn cannot be empty when TrainingDatasetPath is specified. ")
+		panic("TargetColumn cannot be empty when TrainingDatasetPath is specified. ")
+	}
+
 	if options.TrainingDatasetPath != "" {
 		dataset, err = ReadCSVFile(options.TrainingDatasetPath)
 
@@ -69,6 +78,7 @@ func NewTaoClassifier(opts ...TaoClassifierOptions) *TaoClassifier {
 		dataset:          dataset,
 		temperature:      options.Temperature,
 		promptSampleSize: options.PromptSampleSize,
+		targetColumn:     options.TargetColumn,
 	}
 }
 
@@ -84,6 +94,16 @@ func (c *TaoClassifier) PromptTrain(prompts map[Label][]LabelDescription) (bool,
 	return true, nil
 }
 
+func (c *TaoClassifier) GetAvailableLabels() ([]Label, error) {
+	labels := []Label{}
+
+	for label := range c.prompts {
+		labels = append(labels, label)
+	}
+
+	return labels, nil
+}
+
 func (c *TaoClassifier) GenerateClassifierProfile(label Label, rowItem RowItem, currentClassifierProfile ClassifierProfile) (ClassifierProfile, error) {
 	if len(rowItem) == 0 {
 		return ClassifierProfile{}, fmt.Errorf("rowItem cannot be empty")
@@ -95,13 +115,23 @@ func (c *TaoClassifier) GenerateClassifierProfile(label Label, rowItem RowItem, 
 		combinedRowItems += fmt.Sprintf("%s: %s\n", key, value)
 	}
 
+	availableLabels, err := c.GetAvailableLabels()
+
+	if err != nil {
+		log.Fatal("GenerateClassifierProfile: Failed to get available labels", err)
+		return ClassifierProfile{}, err
+	}
+
+	labelsStr := strings.Join(availableLabels, ", ")
+
 	// TODO: find a way to sync the type and schema in the prompt
 	systemPrompt := `You are an AI assistant that performs classification.
 					You are tasked with generating a 'classification profile' given a set of row items for the given label.
 					In the description, include relationships between variables in the row.
 					Don't include the row item values in the attributes, include anything additional discovered in the data.
 					Respond in JSON with { label: string <label>, "description": string[] <description array> } }.
-					Based on the label, identify features within the row items that are relevant to the label.`
+					Based on the label, identify features within the row items that are relevant to the label.
+					Target Column for Classification: ` + c.targetColumn + "\nAvailable Labels: " + labelsStr
 
 	userPrompt := fmt.Sprintf(`Generate a classification profile for the label %s given the following row items: %s`, label, combinedRowItems)
 
