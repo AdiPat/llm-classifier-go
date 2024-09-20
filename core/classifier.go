@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"strings"
 	"time"
 
@@ -16,8 +15,10 @@ type Label = string
 type LabelDescription = string
 
 type TaoClassifier struct {
+	modelId          string
 	prompts          map[Label][]LabelDescription // mapping between label -> array of descriptions of label (prompts)
 	ai               *AI
+	config           *TaoConfig
 	dataset          []RowItem
 	targetColumn     string
 	temperature      float64
@@ -37,6 +38,7 @@ type ClassifierProfile struct {
 }
 
 type TaoClassifierOptions struct {
+	ModelId             string
 	TrainingDatasetPath string
 	TargetColumn        string
 	Temperature         float64
@@ -53,7 +55,10 @@ type SavedTaoModel struct {
 }
 
 func NewTaoClassifier(opts ...TaoClassifierOptions) *TaoClassifier {
+	defaultModelId := fmt.Sprint(time.Now().Unix())
+
 	options := TaoClassifierOptions{
+		ModelId:             defaultModelId,
 		TrainingDatasetPath: "",
 		TargetColumn:        "",
 		Temperature:         0.5,
@@ -67,6 +72,14 @@ func NewTaoClassifier(opts ...TaoClassifierOptions) *TaoClassifier {
 	if options.PromptSampleSize <= 0 {
 		// set to default
 		options.PromptSampleSize = 10
+	}
+
+	if options.ModelId == "" {
+		if options.Verbose {
+			fmt.Println("ModelId not provided, using autogenerating ID: ", defaultModelId)
+		}
+
+		options.ModelId = defaultModelId
 	}
 
 	err := godotenv.Load("../.env")
@@ -113,7 +126,10 @@ func NewTaoClassifier(opts ...TaoClassifierOptions) *TaoClassifier {
 		}
 	}
 
+	config := GetTaoConfig()
+
 	return &TaoClassifier{
+		modelId:          options.ModelId,
 		prompts:          prompts,
 		ai:               ai,
 		dataset:          dataset,
@@ -121,6 +137,7 @@ func NewTaoClassifier(opts ...TaoClassifierOptions) *TaoClassifier {
 		promptSampleSize: options.PromptSampleSize,
 		targetColumn:     options.TargetColumn,
 		verbose:          options.Verbose,
+		config:           config,
 	}
 }
 
@@ -311,27 +328,22 @@ func (c *TaoClassifier) SaveModel() (bool, error) {
 	}
 
 	savedTaoModel := SavedTaoModel{
+		ModelId:          c.modelId,
 		Prompts:          c.prompts,
 		Temperature:      c.temperature,
 		PromptSampleSize: c.promptSampleSize,
 		TargetColumn:     c.targetColumn,
 	}
 
-	savedTaoModelStr, err := json.Marshal(savedTaoModel)
-
-	if err != nil {
-		fmt.Println("SaveModel: failed to marshal model:", err)
-		return false, err
-	}
-
-	modelId := time.Now().Unix()
-	filePath := "../models/" + fmt.Sprint(modelId) + ".json"
-
-	err = os.WriteFile(filePath, []byte(savedTaoModelStr), 0644)
+	modelId, err := c.config.SaveModelToFile(savedTaoModel, SaveModelToFileOptions{Overwrite: true})
 
 	if err != nil {
 		fmt.Println("SaveModel: failed to save model:", err)
 		return false, err
+	}
+
+	if c.verbose {
+		fmt.Println("SaveModel: model saved successfully: modelId =", modelId)
 	}
 
 	return true, nil
