@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -40,6 +42,13 @@ type TaoClassifierOptions struct {
 	Temperature         float64
 	PromptSampleSize    int
 	Verbose             bool
+}
+
+type SavedTaoModel struct {
+	Prompts          map[Label][]LabelDescription
+	Temperature      float64
+	PromptSampleSize int
+	TaregtColumn     string
 }
 
 func NewTaoClassifier(opts ...TaoClassifierOptions) *TaoClassifier {
@@ -273,6 +282,7 @@ func (c *TaoClassifier) Train() error {
 
 	return nil
 }
+
 func (c *TaoClassifier) ArePromptsLoaded() (bool, error) {
 	if len(c.prompts) == 0 {
 		return false, fmt.Errorf("no prompts found. Call Train() or PromptTrain() first. ")
@@ -282,6 +292,45 @@ func (c *TaoClassifier) ArePromptsLoaded() (bool, error) {
 		if len(descriptionList) == 0 {
 			return false, fmt.Errorf("no prompts found for class %s", class)
 		}
+	}
+
+	return true, nil
+}
+
+func (c *TaoClassifier) SaveModel() (bool, error) {
+	promptsLoaded, err := c.ArePromptsLoaded()
+
+	if err != nil {
+		fmt.Println("SaveModel: failed to check if prompts are loaded:", err)
+		return false, err
+	}
+
+	if !promptsLoaded {
+		return false, fmt.Errorf("prompts are not loaded. Call Train() or PromptTrain() first. ")
+	}
+
+	savedTaoModel := SavedTaoModel{
+		Prompts:          c.prompts,
+		Temperature:      c.temperature,
+		PromptSampleSize: c.promptSampleSize,
+		TaregtColumn:     c.targetColumn,
+	}
+
+	savedTaoModelStr, err := json.Marshal(savedTaoModel)
+
+	if err != nil {
+		fmt.Println("SaveModel: failed to marshal model:", err)
+		return false, err
+	}
+
+	modelId := time.Now().Unix()
+	filePath := "../models/" + string(modelId) + ".json"
+
+	err = os.WriteFile(filePath, []byte(savedTaoModelStr), 0644)
+
+	if err != nil {
+		fmt.Println("SaveModel: failed to save model:", err)
+		return false, err
 	}
 
 	return true, nil
