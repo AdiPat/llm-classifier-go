@@ -126,26 +126,37 @@ func (c *TaoClassifier) GenerateClassifierProfile(label Label, rowItem RowItem, 
 
 func (c *TaoClassifier) Train() error {
 	maxDescriptions := c.promptSampleSize
+	selectedRows := make(map[int]bool)
 
-	for _, row := range c.dataset {
+	for {
+		row, index := SelectRandomRow(c.dataset)
+
+		selectedRowsCount := CountSelectedRows(c.dataset, selectedRows)
+
+		if selectedRowsCount == len(c.dataset) {
+			break
+		}
+
+		if _, ok := selectedRows[index]; ok {
+			continue
+		}
+
 		for label, descriptionList := range c.prompts {
+			// if label already has enough prompts, skip to the next label
+			if len(descriptionList) >= maxDescriptions {
+				continue
+			}
 
 			classificationProfile, err := c.GenerateClassifierProfile(label, row, ClassifierProfile{})
 
 			if err != nil {
 				log.Fatal("Train: Failed to generate classifier profile", err)
-				return err
+			} else {
+				c.prompts[label] = append(descriptionList, classificationProfile.Description...)
 			}
-
-			c.prompts[label] = append(descriptionList, classificationProfile.Description...)
 		}
-	}
 
-	// restrict prompts to sample size to avoid overfitting
-	for label, descriptionList := range c.prompts {
-		if len(descriptionList) > maxDescriptions {
-			c.prompts[label] = descriptionList[:maxDescriptions]
-		}
+		selectedRows[index] = true
 	}
 
 	return nil
