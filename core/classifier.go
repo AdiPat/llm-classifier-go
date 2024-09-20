@@ -324,7 +324,7 @@ func (c *TaoClassifier) SaveModel() (bool, error) {
 	}
 
 	modelId := time.Now().Unix()
-	filePath := "../models/" + string(modelId) + ".json"
+	filePath := "../models/" + fmt.Sprint(modelId) + ".json"
 
 	err = os.WriteFile(filePath, []byte(savedTaoModelStr), 0644)
 
