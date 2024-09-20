@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"os"
 	"regexp"
 	"strings"
@@ -72,4 +73,24 @@ func ReadCSVFile(filePath string) ([]RowItem, error) {
 	}
 
 	return records, nil
+}
+
+func SelectRandomRow(dataset []RowItem) (RowItem, int) {
+	if len(dataset) == 0 {
+		return nil, -1 // Return nil if the dataset is empty
+	}
+
+	randomIndex := rand.Intn(len(dataset))
+	return dataset[randomIndex], randomIndex
+}
+
+func CountSelectedRows(dataset []RowItem, selected map[int]bool) int {
+	count := 0
+
+	for index, _ := range dataset {
+		if selected[index] {
+			count++
+		}
+	}
+	return count
 }

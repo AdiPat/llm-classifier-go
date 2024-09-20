@@ -69,7 +69,6 @@ func TestCleanGPTJSON(t *testing.T) {
 }
 
 func TestReadCSVFile(t *testing.T) {
-
 	t.Run("Empty file path", func(t *testing.T) {
 		_, err := ReadCSVFile("")
 		if err == nil {
@@ -93,6 +92,69 @@ func TestReadCSVFile(t *testing.T) {
 
 		if len(records) != 10 {
 			t.Errorf("Expected 10 rows found in the CSV file, got %v", len(records))
+		}
+	})
+}
+
+func TestSelectRandomRow(t *testing.T) {
+
+	t.Run("Empty dataset", func(t *testing.T) {
+		dataset := []RowItem{}
+		item, index := SelectRandomRow(dataset)
+
+		if item != nil {
+			t.Errorf("Expected nil, got %v", item)
+		}
+
+		if index != -1 {
+			t.Errorf("Expected -1, got %v", index)
+		}
+	})
+
+	t.Run("Valid dataset", func(t *testing.T) {
+		dataset := []RowItem{
+			{"name": "Alice", "age": "30"},
+			{"name": "Bob", "age": "25"},
+		}
+
+		row, index := SelectRandomRow(dataset)
+		if row == nil {
+			t.Errorf("Expected a row, got nil")
+		}
+
+		if index < 0 || index >= len(dataset) {
+			t.Errorf("Expected an index within the dataset range, got %v", index)
+		}
+	})
+}
+
+func TestCountSelectedRows(t *testing.T) {
+
+	t.Run("Returns 0 for empty dataset", func(t *testing.T) {
+		dataset := []RowItem{}
+		selected := map[int]bool{}
+
+		count := CountSelectedRows(dataset, selected)
+
+		if count != 0 {
+			t.Errorf("Expected 0, got %v", count)
+		}
+	})
+
+	t.Run("Returns correct value for non-empty dataset", func(t *testing.T) {
+		dataset := []RowItem{
+			{"name": "Alice", "age": "30"},
+			{"name": "Bob", "age": "25"},
+		}
+
+		selected := map[int]bool{
+			0: true,
+			1: true,
+		}
+
+		count := CountSelectedRows(dataset, selected)
+		if count != 2 {
+			t.Errorf("Expected 2, got %v", count)
 		}
 	})
 }
