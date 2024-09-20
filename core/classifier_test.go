@@ -1,6 +1,7 @@
 package core
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -253,5 +254,77 @@ func TestArePromptsLoaded(t *testing.T) {
 			t.Errorf("Expected false, got true")
 		}
 	})
+}
 
+func TestSaveModel(t *testing.T) {
+	t.Run("Saves model correctly", func(t *testing.T) {
+		params := TaoClassifierOptions{
+			TrainingDatasetPath: "../datasets/student_performance.csv",
+			TargetColumn:        "ParentalSupport",
+			ModelId:             "test_model",
+			PromptSampleSize:    2,
+		}
+
+		classifier := NewTaoClassifier(params)
+
+		classifier.Train()
+
+		status, err := classifier.SaveModel()
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+
+		if !status {
+			t.Errorf("Expected non-empty status, got empty")
+		}
+	})
+}
+
+func TestLoadModel(t *testing.T) {
+	t.Run("Loads model correctly", func(t *testing.T) {
+		params := TaoClassifierOptions{
+			ModelId:          "test_model",
+			PromptSampleSize: 2,
+		}
+
+		classifier := NewTaoClassifier(params)
+
+		classifier.PromptTrain(map[Label][]LabelDescription{
+			"apple":  {"apples are red"},
+			"banana": {"bananas are yellow"},
+		})
+
+		status, err := classifier.SaveModel()
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+
+		if !status {
+			t.Errorf("Expected non-empty status, got empty")
+		}
+
+		loadedClassifier := NewTaoClassifier(TaoClassifierOptions{
+			ModelId: "test_model",
+		})
+
+		status, err = loadedClassifier.LoadModel("test_model")
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+
+		if !status {
+			t.Errorf("Expected non-empty status, got empty")
+		}
+
+		m1 := classifier.GetSavableModel()
+		m2 := loadedClassifier.GetSavableModel()
+
+		if !reflect.DeepEqual(m1, m2) {
+			t.Errorf("Expected models to be equal, got different")
+		}
+
+	})
 }
