@@ -32,7 +32,7 @@ func TestGenerateObject(t *testing.T) {
 			"tags": "[]string"
 		}`
 
-		_, err := ai.GenerateObject("Generate an object.", schema, GenerateTextOptions{Verbose: true})
+		_, err := ai.GenerateObject("Generate an object.", schema, GenerateTextOptions{Verbose: false})
 
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
