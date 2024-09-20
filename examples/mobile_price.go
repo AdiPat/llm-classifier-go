@@ -8,6 +8,7 @@ import (
 
 func main() {
 	params := LLMClassifier.TaoClassifierOptions{
+		ModelId:             "mobile_price_classifier",
 		TrainingDatasetPath: "./datasets/mobile_price_train.csv",
 		TargetColumn:        "price_range",
 		Verbose:             false,
@@ -17,8 +18,23 @@ func main() {
 	fmt.Println("Initializing the classifier. ")
 	classifier := LLMClassifier.NewTaoClassifier(params)
 
-	fmt.Println("Training the classifier. This may take a while. ")
-	classifier.Train()
+	fmt.Println("Loading model if exists.")
+
+	_, err := classifier.LoadModel("mobile_price_classifier")
+
+	if err != nil {
+		println("Error: Failed to load model", err)
+		fmt.Println("Training the classifier. This may take a while. ")
+		classifier.Train()
+	}
+
+	fmt.Println("Saving the model. ")
+
+	_, err = classifier.SaveModel()
+
+	if err != nil {
+		println("Error: Failed to save model", err)
+	}
 
 	testSet, err := LLMClassifier.ReadCSVFile("./datasets/mobile_price_test.csv")
 
@@ -26,20 +42,11 @@ func main() {
 		println("Error: Failed to read test dataset", err)
 	}
 
-	// TODO: This should not be needed. The classifier should be able to handle []RowItem
-	// Convert testSet to []any
+	testSet = testSet[:10]
 
-	var testSetAny []any
-	for _, item := range testSet {
-		testSetAny = append(testSetAny, item)
-	}
+	fmt.Println("Test set: ", testSet)
 
-	// use only 10 entries from the test set
-	testSetAny = testSetAny[:10]
-
-	fmt.Println("Test set: ", testSetAny)
-
-	predictions, err := classifier.PredictManyObjects(testSetAny)
+	predictions, err := classifier.PredictManyRowItems(testSet)
 
 	if err != nil {
 		println("PredictManyObjects failed. Error:", err)
