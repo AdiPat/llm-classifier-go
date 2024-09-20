@@ -349,6 +349,35 @@ func (c *TaoClassifier) SaveModel() (bool, error) {
 	return true, nil
 }
 
+// NOTE: this mutates the model ID if the model exists in the config
+func (c *TaoClassifier) LoadModel(modelId string) (bool, error) {
+	// TODO: be clear about whether we want to pass the model ID as an argument
+	// or use the model ID from the config
+
+	if modelId == "" {
+		return false, fmt.Errorf("modelId cannot be empty")
+	}
+
+	loadedModel, err := c.config.LoadModelFromFile(modelId)
+
+	if err != nil {
+		fmt.Println("LoadModel: failed to load model:", err)
+		return false, err
+	}
+
+	c.modelId = loadedModel.ModelId
+	c.prompts = loadedModel.Prompts
+	c.temperature = loadedModel.Temperature
+	c.promptSampleSize = loadedModel.PromptSampleSize
+	c.targetColumn = loadedModel.TargetColumn
+
+	if c.verbose {
+		fmt.Println("LoadModel: model loaded successfully: modelId =", modelId)
+	}
+
+	return true, nil
+}
+
 func (c *TaoClassifier) AddPrompt(label Label, description LabelDescription) (bool, error) {
 	if label == "" {
 		return false, fmt.Errorf("label cannot be empty")
@@ -504,4 +533,14 @@ func (c *TaoClassifier) PredictMany(texts []string) ([]ClassificationResult, err
 	}
 
 	return results, nil
+}
+
+func (c *TaoClassifier) GetSavableModel() SavedTaoModel {
+	return SavedTaoModel{
+		ModelId:          c.modelId,
+		Prompts:          c.prompts,
+		Temperature:      c.temperature,
+		PromptSampleSize: c.promptSampleSize,
+		TargetColumn:     c.targetColumn,
+	}
 }
