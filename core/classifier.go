@@ -1,22 +1,18 @@
 package core
 
 import (
-	"context"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/option"
 )
 
 type Label = string
 type LabelDescription = string
 
 type TaoClassifier struct {
-	prompts      map[Label][]LabelDescription // mapping between label -> array of descriptions of label (prompts)
-	openaiClient *openai.Client
+	prompts map[Label][]LabelDescription // mapping between label -> array of descriptions of label (prompts)
+	ai      *AI
 }
 
 type ClassificationResult struct {
@@ -36,17 +32,11 @@ func NewTaoClassifier() *TaoClassifier {
 		fmt.Println("Error loading .env file", err)
 	}
 
-	var openAiKey string = os.Getenv("OPENAI_API_KEY")
-
-	if openAiKey == "" {
-		panic("OPENAI_KEY is not set")
-	}
-
-	client := openai.NewClient(option.WithAPIKey(openAiKey))
+	ai := NewAI()
 
 	return &TaoClassifier{
-		prompts:      make(map[Label][]LabelDescription),
-		openaiClient: client,
+		prompts: make(map[Label][]LabelDescription),
+		ai:      ai,
 	}
 }
 
@@ -83,27 +73,16 @@ func (c *TaoClassifier) GenerateClassifierProfile(label Label, rowItem RowItem, 
 
 	userPrompt := fmt.Sprintf(`Generate a classification profile for the label %s given the following row items: %s`, label, combinedRowItems)
 
-	ctx := context.Background()
-
-	params := openai.ChatCompletionNewParams{
-		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(systemPrompt),
-			openai.UserMessage(userPrompt),
-		}),
-		Seed:  openai.Int(1),
-		Model: openai.F(openai.ChatModelGPT4oMini),
-	}
-
-	completions, err := c.openaiClient.Chat.Completions.New(ctx, params)
+	text, err := c.ai.GenerateText(userPrompt, GenerateTextOptions{Verbose: false, System: systemPrompt})
 
 	if err != nil {
 		log.Fatal("GenerateClassifierProfile: Failed to generate completions", err)
 		return ClassifierProfile{}, err
 	}
 
-	fmt.Println(completions.Choices[0].Message.Content)
+	fmt.Println(text)
 
-	result, err := CleanGPTJson[ClassifierProfile](completions.Choices[0].Message.Content)
+	result, err := CleanGPTJson[ClassifierProfile](text)
 
 	if err != nil {
 		log.Fatal("GenerateClassifierProfile: Failed to generate completions", err)
@@ -169,8 +148,6 @@ func (c *TaoClassifier) ClearPrompts() {
 }
 
 func (c *TaoClassifier) PredictOne(text string) (ClassificationResult, error) {
-	ctx := context.Background()
-
 	// convert c.prompts to a string
 	labelDescriptors := "Labels->Description\n"
 	for label, descriptionList := range c.prompts {
@@ -193,22 +170,13 @@ func (c *TaoClassifier) PredictOne(text string) (ClassificationResult, error) {
 
 	userPrompt := fmt.Sprintf(`Classify the following text: "%s"`, text)
 
-	params := openai.ChatCompletionNewParams{
-		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(systemPrompt),
-			openai.UserMessage(userPrompt),
-		}),
-		Seed:  openai.Int(1),
-		Model: openai.F(openai.ChatModelGPT4oMini),
-	}
-
-	completions, err := c.openaiClient.Chat.Completions.New(ctx, params)
+	text, err := c.ai.GenerateText(userPrompt, GenerateTextOptions{Verbose: false, System: systemPrompt})
 
 	if err != nil {
 		return ClassificationResult{Label: "", Probability: -1}, err
 	}
 
-	result, err := CleanGPTJson[ClassificationResult](completions.Choices[0].Message.Content)
+	result, err := CleanGPTJson[ClassificationResult](text)
 
 	if err != nil {
 		return ClassificationResult{Label: "", Probability: -1}, err
