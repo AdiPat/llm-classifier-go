@@ -141,7 +141,7 @@ func NewTaoClassifier(opts ...TaoClassifierOptions) *TaoClassifier {
 	}
 }
 
-func (c *TaoClassifier) InitializePromptsFromDataset() {
+func (c *TaoClassifier) initializePromptsFromDataset() {
 	classes := ExtractClasses(c.dataset, c.targetColumn)
 
 	if len(classes) == 0 {
@@ -248,7 +248,7 @@ func (c *TaoClassifier) Train() error {
 		fmt.Println("Prompts Before: ", c.prompts)
 	}
 
-	c.InitializePromptsFromDataset()
+	c.initializePromptsFromDataset()
 
 	for {
 		row, index := SelectRandomRow(c.dataset)
