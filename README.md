@@ -16,6 +16,15 @@ I forsee uses for this in cases where training an ML model for classification is
 2. **Reusable and Modular:** Can be easily plugged into any Go application with minimal configuration.
 3. **Customizable:** Supports customization of classification models to do specific tasks.
 4. **Scalable:** Designed to handle both small and large datasets with high throughput.
+5. **Natural Language Training:** Train your classifier with natural language prompts which is useful incase training data is unavailable or complex human reasoning is required for classification.
+
+# Examples
+
+The examples are given within `examples/`. If you want to run a particular example, uncomment it in `main.go` and run the example using:
+
+```bash
+go run main.go
+```
 
 # Run Tests
 
